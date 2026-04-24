@@ -94,29 +94,41 @@ async function generateAndUploadThumbnail() {
         }
     });
 
-    await new Promise(r => setTimeout(r, 3000)); // Wait for fullscreen transition
+    // 👇 NAYA UPDATE: Wait for 5 seconds taake video properly play ho jaye 👇
+    console.log('[⏳] Waiting 5 seconds to ensure video is fully playing...');
+    await new Promise(r => setTimeout(r, 5000)); 
 
     // ==========================================
-    // 🛑 FULLSCREEN VERIFICATION CHECK
+    // 🛑 STRICT VERIFICATION CHECK (PLAYING + FULLSCREEN)
     // ==========================================
-    const isFullscreen = await targetFrame.evaluate(() => {
+    const videoStatus = await targetFrame.evaluate(() => {
         const vid = document.querySelector('video[data-html5-video]') || document.querySelector('video');
-        if (!vid) return false;
+        if (!vid) return { isFullscreen: false, isPlaying: false };
         
+        // Check Fullscreen
         const isNativeFS = document.fullscreenElement !== null || document.webkitFullscreenElement !== null;
         const isCssFS = vid.style.width === '100vw';
         const isLargeEnough = vid.clientWidth >= window.innerWidth * 0.8; // At least 80% of screen
+        
+        // Check if Video is actually Playing (not paused, and has data loaded)
+        // readyState >= 2 means current data is available to play
+        const isPlaying = !vid.paused && !vid.ended && vid.readyState >= 2;
 
-        return isNativeFS || isCssFS || isLargeEnough;
+        return { 
+            isFullscreen: isNativeFS || isCssFS || isLargeEnough,
+            isPlaying: isPlaying
+        };
     });
 
-    if (!isFullscreen) {
-        console.log(`[⚠️] Video properly fullscreen nahi hui! Screenshot skip kar raha hoon...`);
+    // 👇 NAYA UPDATE: Agar play nahi ho rahi ya fullscreen nahi hai, toh skip karo 👇
+    if (!videoStatus.isFullscreen || !videoStatus.isPlaying) {
+        console.log(`[⚠️] Alert: Status -> Fullscreen: ${videoStatus.isFullscreen}, Playing: ${videoStatus.isPlaying}`);
+        console.log(`[🚫] Video properly play nahi hui ya fullscreen nahi hai! Screenshot skip kar raha hoon...`);
         await browser.close();
         return; // Cycle end, will try again in 2 minutes
     }
 
-    console.log(`[✅] Video is FULLSCREEN! Proceeding with screenshot...`);
+    console.log(`[✅] Video is PLAYING & FULLSCREEN! Proceeding with screenshot...`);
 
     // ==========================================
     // 📸 SCREENSHOT & THUMBNAIL GENERATION

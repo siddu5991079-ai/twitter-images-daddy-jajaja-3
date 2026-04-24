@@ -1,3 +1,4 @@
+
 name: Auto Thumbnail Generator
 
 on:
@@ -14,24 +15,11 @@ permissions:
 jobs:
   run-thumbnail-bot:
     runs-on: ubuntu-latest
-    timeout-minutes: 360 # Keeps the action running for 6 hours
+    timeout-minutes: 360
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v3
-
-    - name: 🧹 Clean ALL Old Releases & Tags
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        echo "Starting fresh: Fetching and deleting ALL old releases..."
-        gh release list --limit 100 | cut -f1 | while read -r tag; do
-          if [ -n "$tag" ]; then
-            echo "Deleting release and tag: $tag"
-            gh release delete "$tag" --cleanup-tag -y || true
-          fi
-        done
-        echo "✅ Cleanup complete. Repository is clean!"
 
     - name: Install System Tools (Chrome & Xvfb)
       run: |
@@ -52,3 +40,75 @@ jobs:
         TARGET_URL: ${{ inputs.target_url }}
       run: |
         xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" node thumbnail_bot.js
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# name: Auto Thumbnail Generator
+
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       target_url:
+#         description: 'Target Website URL'
+#         required: true
+#         default: 'https://dlstreams.com/watch.php?id=598'
+
+# permissions:
+#   contents: write 
+
+# jobs:
+#   run-thumbnail-bot:
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 360 # Keeps the action running for 6 hours
+
+#     steps:
+#     - name: Checkout Code
+#       uses: actions/checkout@v3
+
+#     - name: 🧹 Clean ALL Old Releases & Tags
+#       env:
+#         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       run: |
+#         echo "Starting fresh: Fetching and deleting ALL old releases..."
+#         gh release list --limit 100 | cut -f1 | while read -r tag; do
+#           if [ -n "$tag" ]; then
+#             echo "Deleting release and tag: $tag"
+#             gh release delete "$tag" --cleanup-tag -y || true
+#           fi
+#         done
+#         echo "✅ Cleanup complete. Repository is clean!"
+
+#     - name: Install System Tools (Chrome & Xvfb)
+#       run: |
+#         sudo apt-get update
+#         sudo apt-get install -y google-chrome-stable xvfb
+
+#     - name: Setup Node.js
+#       uses: actions/setup-node@v3
+#       with:
+#         node-version: '18'
+
+#     - name: Install Node Libraries
+#       run: npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
+
+#     - name: 🚀 Run Infinite Thumbnail Loop
+#       env:
+#         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         TARGET_URL: ${{ inputs.target_url }}
+#       run: |
+#         xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" node thumbnail_bot.js

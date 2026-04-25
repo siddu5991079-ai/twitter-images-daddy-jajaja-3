@@ -1,4 +1,3 @@
-
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
@@ -129,7 +128,7 @@ async function generateAndUploadThumbnail() {
     // ==========================================
     // 📸 SCREENSHOT & THUMBNAIL GENERATION
     // ==========================================
-    const uniqueTime = Date.now(); // 👈 Har cycle ka ek unique time generate hoga
+    const uniqueTime = Date.now(); 
     const rawFrame = `temp_raw_frame_${uniqueTime}.jpg`;
     
     try {
@@ -152,7 +151,7 @@ async function generateAndUploadThumbnail() {
 
     await page.setContent(htmlCode);
     
-    // 👈 Yahan name mein uniqueness add kar di hai
+    // Naya unique naam taake release mein add hoti jaye (Overwrite na ho)
     const outputImagePath = `Live_Thumbnail_${uniqueTime}.png`; 
     await page.screenshot({ path: outputImagePath });
     
@@ -162,11 +161,11 @@ async function generateAndUploadThumbnail() {
     console.log(`[✅] Thumbnail Ready: ${outputImagePath}`);
 
     // ==========================================
-    // 📤 GITHUB RELEASE UPLOAD (ADD NEW IMAGE)
+    // 📤 GITHUB RELEASE UPLOAD (ADD TO EXISTING FOLDER)
     // ==========================================
-    console.log(`[📤] Uploading new Thumbnail...`);
+    console.log(`[📤] Adding Thumbnail to the General Release...`);
     try {
-        // 👈 Clobber flag hata diya taake file delete na ho
+        // Clobber flag nahi hai, tasveer add hogi delete nahi hogi
         execSync(`gh release upload ${RELEASE_TAG} "${outputImagePath}"`, { stdio: 'inherit' });
         console.log(`✅ [+] Successfully ADDED ${outputImagePath} to the main release!`);
     } catch (err) {
@@ -183,16 +182,20 @@ async function generateAndUploadThumbnail() {
 async function main() {
     console.log(`\n[🧹] NEW ACTION DETECTED: Cleaning up old releases...`);
     try {
-        // Start mein release aur purani files delete karega
+        // 👈 STEP 1: Jab naya action start ho, pehle pichli saari release aur uski sari images delete (clean) kare.
         execSync(`gh release delete ${RELEASE_TAG} --cleanup-tag -y`, { stdio: 'ignore' });
+        console.log(`[✅] Old release cleaned up successfully.`);
     } catch (e) {
+        // Ignore if no old release exists
     }
 
     console.log(`[📦] Creating a fresh Unified Release container...`);
     try {
+        // 👈 STEP 2: Usi "General" naam se dobara ek nai release banaye (--latest ke sath taake publish ho).
         execSync(`gh release create ${RELEASE_TAG} --title "Live Match Updates" --notes "Latest live stream thumbnails yahan auto-add honge." --latest`, { stdio: 'ignore' });
     } catch (e) { }
 
+    // STEP 3: Ab loop shuru ho jayega aur har 30 second baad nayi tasveer isi release mein add hoti jayegi bina kisi delete ke.
     while (true) {
         await generateAndUploadThumbnail();
         await new Promise(resolve => setTimeout(resolve, WAIT_TIME_MS));
@@ -200,7 +203,6 @@ async function main() {
 }
 
 main();
-
 
 
 

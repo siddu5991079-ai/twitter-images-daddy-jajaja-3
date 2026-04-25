@@ -10,7 +10,7 @@ const fs = require('fs');
 // ⚙️ SETTINGS & ENVIRONMENT VARIABLES
 // ==========================================
 const TARGET_URL = process.env.TARGET_URL || 'https://dlstreams.com/watch.php?id=316';
-const WAIT_TIME_MS = 30 * 1000; // 👈 30 Seconds Wait Time
+const WAIT_TIME_MS = 30 * 1000; // 30 Seconds Wait Time
 const RELEASE_TAG = 'live-match-updates'; 
 
 let cycleCounter = 1;
@@ -129,7 +129,8 @@ async function generateAndUploadThumbnail() {
     // ==========================================
     // 📸 SCREENSHOT & THUMBNAIL GENERATION
     // ==========================================
-    const rawFrame = `temp_raw_frame_${Date.now()}.jpg`;
+    const uniqueTime = Date.now(); // 👈 Har cycle ka ek unique time generate hoga
+    const rawFrame = `temp_raw_frame_${uniqueTime}.jpg`;
     
     try {
         await page.screenshot({ path: rawFrame, type: 'jpeg', quality: 90 });
@@ -151,8 +152,8 @@ async function generateAndUploadThumbnail() {
 
     await page.setContent(htmlCode);
     
-    // STATIC IMAGE NAME (URL same rakhne ke liye)
-    const outputImagePath = `Live_Thumbnail.png`; 
+    // 👈 Yahan name mein uniqueness add kar di hai
+    const outputImagePath = `Live_Thumbnail_${uniqueTime}.png`; 
     await page.screenshot({ path: outputImagePath });
     
     await browser.close();
@@ -161,12 +162,13 @@ async function generateAndUploadThumbnail() {
     console.log(`[✅] Thumbnail Ready: ${outputImagePath}`);
 
     // ==========================================
-    // 📤 GITHUB RELEASE UPLOAD (OVERWRITE OLD IMAGE)
+    // 📤 GITHUB RELEASE UPLOAD (ADD NEW IMAGE)
     // ==========================================
-    console.log(`[📤] Updating the Live Thumbnail (URL remains same)...`);
+    console.log(`[📤] Uploading new Thumbnail...`);
     try {
-        execSync(`gh release upload ${RELEASE_TAG} "${outputImagePath}" --clobber`, { stdio: 'inherit' });
-        console.log(`✅ [+] Successfully UPDATED ${outputImagePath} in the main release!`);
+        // 👈 Clobber flag hata diya taake file delete na ho
+        execSync(`gh release upload ${RELEASE_TAG} "${outputImagePath}"`, { stdio: 'inherit' });
+        console.log(`✅ [+] Successfully ADDED ${outputImagePath} to the main release!`);
     } catch (err) {
         console.log(`[❌] Upload failed. Error: ${err.message}`);
     }
@@ -181,16 +183,14 @@ async function generateAndUploadThumbnail() {
 async function main() {
     console.log(`\n[🧹] NEW ACTION DETECTED: Cleaning up old releases...`);
     try {
-        // 👈 YEH SIRF START MEIN CHALEGA: Purani release aur images completely delete karega
+        // Start mein release aur purani files delete karega
         execSync(`gh release delete ${RELEASE_TAG} --cleanup-tag -y`, { stdio: 'ignore' });
     } catch (e) {
-        // Pehli baar mein error aaye toh ignore karega
     }
 
     console.log(`[📦] Creating a fresh Unified Release container...`);
     try {
-        // 👈 Nayi release banayega jisme aage ki images aayengi
-        execSync(`gh release create ${RELEASE_TAG} --title "Live Match Updates" --notes "Latest live stream thumbnail yahan auto-update hoga." --latest`, { stdio: 'ignore' });
+        execSync(`gh release create ${RELEASE_TAG} --title "Live Match Updates" --notes "Latest live stream thumbnails yahan auto-add honge." --latest`, { stdio: 'ignore' });
     } catch (e) { }
 
     while (true) {

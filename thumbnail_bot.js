@@ -10,6 +10,8 @@ const fs = require('fs');
 // ==========================================
 const TARGET_URL = process.env.TARGET_URL || 'https://dlstreams.com/watch.php?id=316';
 const WAIT_TIME_MS = 30 * 1000; // 30 Seconds Wait Time
+
+// 👇 GENERAL AREA TAG 👇
 const RELEASE_TAG = 'live-match-updates'; 
 
 let cycleCounter = 1;
@@ -21,14 +23,14 @@ async function generateAndUploadThumbnail() {
     
     const browser = await puppeteer.launch({
         channel: 'chrome', 
-        headless: false, // Xvfb Handles this
+        headless: false,
         defaultViewport: { width: 1280, height: 720 },
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // Prevents black screen on 2nd run
+            '--disable-dev-shm-usage', 
             '--disable-gpu',
-            '--disable-accelerated-video-decode', // Forces video to be visible in screenshot
+            '--disable-accelerated-video-decode', 
             '--disable-software-rasterizer',
             '--autoplay-policy=no-user-gesture-required', 
             '--mute-audio'
@@ -64,9 +66,6 @@ async function generateAndUploadThumbnail() {
         return;
     }
 
-    // ==========================================
-    // 🛠️ CLICK, PLAY & FULLSCREEN LOGIC
-    // ==========================================
     console.log('[*] Attempting to click, play, and fullscreen the video...');
     
     try {
@@ -97,9 +96,6 @@ async function generateAndUploadThumbnail() {
     console.log('[⏳] Waiting 5 seconds to ensure video is fully playing...');
     await new Promise(r => setTimeout(r, 5000)); 
 
-    // ==========================================
-    // 🛑 STRICT VERIFICATION CHECK
-    // ==========================================
     const videoStatus = await targetFrame.evaluate(() => {
         const vid = document.querySelector('video[data-html5-video]') || document.querySelector('video');
         if (!vid) return { isFullscreen: false, isPlaying: false };
@@ -117,7 +113,6 @@ async function generateAndUploadThumbnail() {
     });
 
     if (!videoStatus.isFullscreen || !videoStatus.isPlaying) {
-        console.log(`[⚠️] Alert: Status -> Fullscreen: ${videoStatus.isFullscreen}, Playing: ${videoStatus.isPlaying}`);
         console.log(`[🚫] Video properly play nahi hui ya fullscreen nahi hai! Screenshot skip kar raha hoon...`);
         await browser.close();
         return; 
@@ -125,9 +120,6 @@ async function generateAndUploadThumbnail() {
 
     console.log(`[✅] Video is PLAYING & FULLSCREEN! Proceeding with screenshot...`);
 
-    // ==========================================
-    // 📸 SCREENSHOT & THUMBNAIL GENERATION
-    // ==========================================
     const uniqueTime = Date.now(); 
     const rawFrame = `temp_raw_frame_${uniqueTime}.jpg`;
     
@@ -151,7 +143,7 @@ async function generateAndUploadThumbnail() {
 
     await page.setContent(htmlCode);
     
-    // Naya unique naam taake release mein add hoti jaye (Overwrite na ho)
+    // Naya naam taake release mein add hoti jaye (Overwrite na ho)
     const outputImagePath = `Live_Thumbnail_${uniqueTime}.png`; 
     await page.screenshot({ path: outputImagePath });
     
@@ -160,42 +152,45 @@ async function generateAndUploadThumbnail() {
     
     console.log(`[✅] Thumbnail Ready: ${outputImagePath}`);
 
-    // ==========================================
-    // 📤 GITHUB RELEASE UPLOAD (ADD TO EXISTING FOLDER)
-    // ==========================================
-    console.log(`[📤] Adding Thumbnail to the General Release...`);
+    // YAHAN UPLOAD HOGA FIXED GENERAL FOLDER MEIN
+    console.log(`[📤] Adding Thumbnail to the FIXED General Release (${RELEASE_TAG})...`);
     try {
-        // Clobber flag nahi hai, tasveer add hogi delete nahi hogi
         execSync(`gh release upload ${RELEASE_TAG} "${outputImagePath}"`, { stdio: 'inherit' });
-        console.log(`✅ [+] Successfully ADDED ${outputImagePath} to the main release!`);
+        console.log(`✅ [+] Successfully ADDED to ${RELEASE_TAG}!`);
     } catch (err) {
         console.log(`[❌] Upload failed. Error: ${err.message}`);
     }
 
     if (fs.existsSync(outputImagePath)) fs.unlinkSync(outputImagePath);
 
-    console.log(`\n[⏳] Cycle #${cycleCounter} Complete! Waiting 30 seconds for the next cycle...`);
+    console.log(`\n[⏳] Cycle #${cycleCounter} Complete! Waiting 30 seconds...`);
     cycleCounter++;
 }
 
 // 🔥 MAIN LOOP FUNCTION 🔥
 async function main() {
-    console.log(`\n[🧹] NEW ACTION DETECTED: Cleaning up old releases...`);
+    console.log(`\n[🧹] STEP 1: Cleaning up old GENERAL release...`);
     try {
-        // 👈 STEP 1: Jab naya action start ho, pehle pichli saari release aur uski sari images delete (clean) kare.
+        // Purani release aur uske tag ko completely delete karega
         execSync(`gh release delete ${RELEASE_TAG} --cleanup-tag -y`, { stdio: 'ignore' });
-        console.log(`[✅] Old release cleaned up successfully.`);
+        console.log(`[✅] Old release deleted. Waiting 5 seconds for GitHub to sync...`);
+        
+        // 👇 GITHUB KO REFRESH HONE KA TIME DENGE (TAAKE DRAFT YA TAG NA BANE) 👇
+        await new Promise(r => setTimeout(r, 5000)); 
     } catch (e) {
-        // Ignore if no old release exists
+        console.log(`[ℹ️] No old release found to delete.`);
     }
 
-    console.log(`[📦] Creating a fresh Unified Release container...`);
+    console.log(`[📦] STEP 2: Creating a fresh, VISIBLE GENERAL Release...`);
     try {
-        // 👈 STEP 2: Usi "General" naam se dobara ek nai release banaye (--latest ke sath taake publish ho).
-        execSync(`gh release create ${RELEASE_TAG} --title "Live Match Updates" --notes "Latest live stream thumbnails yahan auto-add honge." --latest`, { stdio: 'ignore' });
-    } catch (e) { }
+        // Nayi release create hogi jo direct front page par show hogi
+        execSync(`gh release create ${RELEASE_TAG} --title "🔴 Live Match Updates" --notes "Sari thumbnails yahan auto-add hongi." --latest`, { stdio: 'inherit' });
+        console.log(`[✅] General release created successfully!`);
+    } catch (e) { 
+        console.log(`[⚠️] Release creation error (It might already exist). Moving on...`);
+    }
 
-    // STEP 3: Ab loop shuru ho jayega aur har 30 second baad nayi tasveer isi release mein add hoti jayegi bina kisi delete ke.
+    // STEP 3: Start 30 seconds loop
     while (true) {
         await generateAndUploadThumbnail();
         await new Promise(resolve => setTimeout(resolve, WAIT_TIME_MS));
@@ -203,7 +198,6 @@ async function main() {
 }
 
 main();
-
 
 
 

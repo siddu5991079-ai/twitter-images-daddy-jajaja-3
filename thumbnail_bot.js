@@ -1,5 +1,4 @@
 
-
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
@@ -11,7 +10,7 @@ const fs = require('fs');
 // ⚙️ SETTINGS & ENVIRONMENT VARIABLES
 // ==========================================
 const TARGET_URL = process.env.TARGET_URL || 'https://dlstreams.com/watch.php?id=316';
-const WAIT_TIME_MS = 30 * 1000; // 30 Seconds wait time
+const WAIT_TIME_MS = 30 * 1000; // 👈 30 Seconds Wait Time
 const RELEASE_TAG = 'live-match-updates'; 
 
 let cycleCounter = 1;
@@ -28,9 +27,9 @@ async function generateAndUploadThumbnail() {
         args: [
             '--no-sandbox', 
             '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage', // 👈 FIX 1: Prevents black screen on 2nd run (Memory issue)
+            '--disable-dev-shm-usage', // Prevents black screen on 2nd run
             '--disable-gpu',
-            '--disable-accelerated-video-decode', // 👈 FIX 2: Forces video to be visible in screenshot
+            '--disable-accelerated-video-decode', // Forces video to be visible in screenshot
             '--disable-software-rasterizer',
             '--autoplay-policy=no-user-gesture-required', 
             '--mute-audio'
@@ -152,7 +151,7 @@ async function generateAndUploadThumbnail() {
 
     await page.setContent(htmlCode);
     
-    // STATIC IMAGE NAME (Hamesha ek hi naam rakhega)
+    // STATIC IMAGE NAME (URL same rakhne ke liye)
     const outputImagePath = `Live_Thumbnail.png`; 
     await page.screenshot({ path: outputImagePath });
     
@@ -164,31 +163,35 @@ async function generateAndUploadThumbnail() {
     // ==========================================
     // 📤 GITHUB RELEASE UPLOAD (OVERWRITE OLD IMAGE)
     // ==========================================
-    console.log(`[📤] Uploading and Overwriting old Thumbnail...`);
+    console.log(`[📤] Updating the Live Thumbnail (URL remains same)...`);
     try {
-        // --clobber flag add kar diya gaya hai
         execSync(`gh release upload ${RELEASE_TAG} "${outputImagePath}" --clobber`, { stdio: 'inherit' });
-        console.log(`✅ [+] Successfully OVERWRITTEN ${outputImagePath} in the main release!`);
+        console.log(`✅ [+] Successfully UPDATED ${outputImagePath} in the main release!`);
     } catch (err) {
         console.log(`[❌] Upload failed. Error: ${err.message}`);
     }
 
     if (fs.existsSync(outputImagePath)) fs.unlinkSync(outputImagePath);
 
-    // console.log(`\n[⏳] Cycle #${cycleCounter} Complete! Waiting 30 minutes for the next cycle...`);
     console.log(`\n[⏳] Cycle #${cycleCounter} Complete! Waiting 30 seconds for the next cycle...`);
     cycleCounter++;
 }
 
 // 🔥 MAIN LOOP FUNCTION 🔥
 async function main() {
-    console.log(`[📦] Checking/Creating Unified Release container...`);
+    console.log(`\n[🧹] NEW ACTION DETECTED: Cleaning up old releases...`);
     try {
-        // --latest flag lagaya hai taake yeh Draft na bane, properly publish ho jaye
-        execSync(`gh release create ${RELEASE_TAG} --title "Live Match Updates" --notes "Latest live stream thumbnail yahan auto-update hoga." --latest`, { stdio: 'ignore' });
-    } catch (e) { 
-        // Agar release pehle se bani hui hai toh yeh ignore karega aur aage chalega
+        // 👈 YEH SIRF START MEIN CHALEGA: Purani release aur images completely delete karega
+        execSync(`gh release delete ${RELEASE_TAG} --cleanup-tag -y`, { stdio: 'ignore' });
+    } catch (e) {
+        // Pehli baar mein error aaye toh ignore karega
     }
+
+    console.log(`[📦] Creating a fresh Unified Release container...`);
+    try {
+        // 👈 Nayi release banayega jisme aage ki images aayengi
+        execSync(`gh release create ${RELEASE_TAG} --title "Live Match Updates" --notes "Latest live stream thumbnail yahan auto-update hoga." --latest`, { stdio: 'ignore' });
+    } catch (e) { }
 
     while (true) {
         await generateAndUploadThumbnail();
@@ -197,6 +200,220 @@ async function main() {
 }
 
 main();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const puppeteer = require('puppeteer-extra');
+// const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+// puppeteer.use(StealthPlugin());
+
+// const { execSync } = require('child_process');
+// const fs = require('fs');
+
+// // ==========================================
+// // ⚙️ SETTINGS & ENVIRONMENT VARIABLES
+// // ==========================================
+// const TARGET_URL = process.env.TARGET_URL || 'https://dlstreams.com/watch.php?id=316';
+// const WAIT_TIME_MS = 30 * 1000; // 30 Seconds wait time
+// const RELEASE_TAG = 'live-match-updates'; 
+
+// let cycleCounter = 1;
+
+// async function generateAndUploadThumbnail() {
+//     console.log(`\n--------------------------------------------------`);
+//     console.log(`--- 🔄 STARTING THUMBNAIL CYCLE #${cycleCounter} ---`);
+//     console.log(`--------------------------------------------------`);
+    
+//     const browser = await puppeteer.launch({
+//         channel: 'chrome', 
+//         headless: false, // Xvfb Handles this
+//         defaultViewport: { width: 1280, height: 720 },
+//         args: [
+//             '--no-sandbox', 
+//             '--disable-setuid-sandbox',
+//             '--disable-dev-shm-usage', // 👈 FIX 1: Prevents black screen on 2nd run (Memory issue)
+//             '--disable-gpu',
+//             '--disable-accelerated-video-decode', // 👈 FIX 2: Forces video to be visible in screenshot
+//             '--disable-software-rasterizer',
+//             '--autoplay-policy=no-user-gesture-required', 
+//             '--mute-audio'
+//         ]
+//     });
+
+//     const page = await browser.newPage();
+//     console.log(`[*] Navigating to target URL: ${TARGET_URL}...`);
+    
+//     await page.goto(TARGET_URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+//     await new Promise(r => setTimeout(r, 10000)); // Wait for player to load
+
+//     let targetFrame = null;
+
+//     console.log('[*] Scanning iframes for the Live Stream Video...');
+//     for (const frame of page.frames()) {
+//         try {
+//             const isRealLiveStream = await frame.evaluate(() => {
+//                 const vid = document.querySelector('video[data-html5-video]') || document.querySelector('video');
+//                 return vid && vid.clientWidth > 300; 
+//             });
+//             if (isRealLiveStream) {
+//                 targetFrame = frame;
+//                 await frame.evaluate(() => { const fAd = document.getElementById('floated'); if (fAd) fAd.remove(); });
+//                 break;
+//             }
+//         } catch (e) { }
+//     }
+
+//     if (!targetFrame) {
+//         console.log('[❌] No video frame found. Skipping this cycle...');
+//         await browser.close();
+//         return;
+//     }
+
+//     // ==========================================
+//     // 🛠️ CLICK, PLAY & FULLSCREEN LOGIC
+//     // ==========================================
+//     console.log('[*] Attempting to click, play, and fullscreen the video...');
+    
+//     try {
+//         const iframeEl = await targetFrame.frameElement();
+//         const box = await iframeEl.boundingBox();
+//         if (box) await page.mouse.click(box.x + (box.width / 2), box.y + (box.height / 2), { delay: 100 });
+//         await new Promise(r => setTimeout(r, 2000));
+//     } catch (e) { }
+
+//     await targetFrame.evaluate(async () => {
+//         const video = document.querySelector('video[data-html5-video]') || document.querySelector('video');
+//         if (video) { video.volume = 1.0; await video.play().catch(e => {}); }
+//     });
+
+//     await targetFrame.evaluate(async () => {
+//         const vid = document.querySelector('video[data-html5-video]') || document.querySelector('video');
+//         if (!vid) return;
+//         try {
+//             if (vid.requestFullscreen) await vid.requestFullscreen();
+//             else if (vid.webkitRequestFullscreen) await vid.webkitRequestFullscreen();
+//         } catch (err) {
+//             vid.style.position = 'fixed'; vid.style.top = '0'; vid.style.left = '0';
+//             vid.style.width = '100vw'; vid.style.height = '100vh'; vid.style.zIndex = '2147483647'; 
+//             vid.style.backgroundColor = 'black'; vid.style.objectFit = 'contain';
+//         }
+//     });
+
+//     console.log('[⏳] Waiting 5 seconds to ensure video is fully playing...');
+//     await new Promise(r => setTimeout(r, 5000)); 
+
+//     // ==========================================
+//     // 🛑 STRICT VERIFICATION CHECK
+//     // ==========================================
+//     const videoStatus = await targetFrame.evaluate(() => {
+//         const vid = document.querySelector('video[data-html5-video]') || document.querySelector('video');
+//         if (!vid) return { isFullscreen: false, isPlaying: false };
+        
+//         const isNativeFS = document.fullscreenElement !== null || document.webkitFullscreenElement !== null;
+//         const isCssFS = vid.style.width === '100vw';
+//         const isLargeEnough = vid.clientWidth >= window.innerWidth * 0.8; 
+        
+//         const isPlaying = !vid.paused && !vid.ended && vid.readyState >= 2;
+
+//         return { 
+//             isFullscreen: isNativeFS || isCssFS || isLargeEnough,
+//             isPlaying: isPlaying
+//         };
+//     });
+
+//     if (!videoStatus.isFullscreen || !videoStatus.isPlaying) {
+//         console.log(`[⚠️] Alert: Status -> Fullscreen: ${videoStatus.isFullscreen}, Playing: ${videoStatus.isPlaying}`);
+//         console.log(`[🚫] Video properly play nahi hui ya fullscreen nahi hai! Screenshot skip kar raha hoon...`);
+//         await browser.close();
+//         return; 
+//     }
+
+//     console.log(`[✅] Video is PLAYING & FULLSCREEN! Proceeding with screenshot...`);
+
+//     // ==========================================
+//     // 📸 SCREENSHOT & THUMBNAIL GENERATION
+//     // ==========================================
+//     const rawFrame = `temp_raw_frame_${Date.now()}.jpg`;
+    
+//     try {
+//         await page.screenshot({ path: rawFrame, type: 'jpeg', quality: 90 });
+//     } catch (e) {
+//         console.log(`[❌] Screenshot failed: ${e.message}`);
+//         await browser.close();
+//         return;
+//     }
+
+//     if (!fs.existsSync(rawFrame)) {
+//         await browser.close();
+//         return;
+//     }
+
+//     console.log(`[🎨] Generating HD Thumbnail with template...`);
+//     const b64Image = "data:image/jpeg;base64," + fs.readFileSync(rawFrame).toString('base64');
+    
+//     const htmlCode = `<!DOCTYPE html><html><head><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@700;900&display=swap" rel="stylesheet"><style>body { margin: 0; width: 1280px; height: 720px; background: #0f0f0f; font-family: 'Roboto', sans-serif; color: white; display: flex; flex-direction: column; overflow: hidden; } .header { height: 100px; display: flex; align-items: center; padding: 0 40px; justify-content: space-between; z-index: 10; } .logo { font-size: 50px; font-weight: 900; letter-spacing: 1px; text-shadow: 0 0 10px rgba(255,255,255,0.8); } .live-badge { border: 4px solid #cc0000; border-radius: 12px; padding: 5px 20px; font-size: 40px; font-weight: 700; display: flex; gap: 10px; } .hero-container { position: relative; width: 100%; height: 440px; } .hero-img { width: 100%; height: 100%; object-fit: cover; filter: blur(5px); opacity: 0.6; } .pip-img { position: absolute; top: 20px; right: 40px; width: 45%; border: 6px solid white; box-shadow: -15px 15px 30px rgba(0,0,0,0.8); } .text-container { position: relative; z-index: 999; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 10px 40px; } .main-title { font-size: 70px; font-weight: 900; line-height: 1.1; text-shadow: 6px 6px 15px rgba(0,0,0,0.9); } .live-text { color: #cc0000; }</style></head><body><div class="header"><div class="logo">SPORTSHUB</div><div class="live-badge"><span style="color:#cc0000">●</span> LIVE</div></div><div class="hero-container"><img src="${b64Image}" class="hero-img"><img src="${b64Image}" class="pip-img"></div><div class="text-container"><div class="main-title"><span class="live-text">🔴 Watch Live : </span>bulbul4u-live.xyz</div></div></body></html>`;
+
+//     await page.setContent(htmlCode);
+    
+//     // STATIC IMAGE NAME (Hamesha ek hi naam rakhega)
+//     const outputImagePath = `Live_Thumbnail.png`; 
+//     await page.screenshot({ path: outputImagePath });
+    
+//     await browser.close();
+//     if (fs.existsSync(rawFrame)) fs.unlinkSync(rawFrame); 
+    
+//     console.log(`[✅] Thumbnail Ready: ${outputImagePath}`);
+
+//     // ==========================================
+//     // 📤 GITHUB RELEASE UPLOAD (OVERWRITE OLD IMAGE)
+//     // ==========================================
+//     console.log(`[📤] Uploading and Overwriting old Thumbnail...`);
+//     try {
+//         // --clobber flag add kar diya gaya hai
+//         execSync(`gh release upload ${RELEASE_TAG} "${outputImagePath}" --clobber`, { stdio: 'inherit' });
+//         console.log(`✅ [+] Successfully OVERWRITTEN ${outputImagePath} in the main release!`);
+//     } catch (err) {
+//         console.log(`[❌] Upload failed. Error: ${err.message}`);
+//     }
+
+//     if (fs.existsSync(outputImagePath)) fs.unlinkSync(outputImagePath);
+
+//     // console.log(`\n[⏳] Cycle #${cycleCounter} Complete! Waiting 30 minutes for the next cycle...`);
+//     console.log(`\n[⏳] Cycle #${cycleCounter} Complete! Waiting 30 seconds for the next cycle...`);
+//     cycleCounter++;
+// }
+
+// // 🔥 MAIN LOOP FUNCTION 🔥
+// async function main() {
+//     console.log(`[📦] Checking/Creating Unified Release container...`);
+//     try {
+//         // --latest flag lagaya hai taake yeh Draft na bane, properly publish ho jaye
+//         execSync(`gh release create ${RELEASE_TAG} --title "Live Match Updates" --notes "Latest live stream thumbnail yahan auto-update hoga." --latest`, { stdio: 'ignore' });
+//     } catch (e) { 
+//         // Agar release pehle se bani hui hai toh yeh ignore karega aur aage chalega
+//     }
+
+//     while (true) {
+//         await generateAndUploadThumbnail();
+//         await new Promise(resolve => setTimeout(resolve, WAIT_TIME_MS));
+//     }
+// }
+
+// main();
 
 
 

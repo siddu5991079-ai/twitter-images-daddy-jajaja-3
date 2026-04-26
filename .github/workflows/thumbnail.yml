@@ -8,6 +8,10 @@ on:
         description: 'Target Website URL'
         required: true
         default: 'https://dlstreams.com/watch.php?id=598'
+      image_prefix:
+        description: 'Image Name Start (e.g., Match1, Live_Thumbnail)' # <-- ADDED THIS
+        required: true
+        default: 'Live_Thumbnail'
 
 permissions:
   contents: write 
@@ -38,8 +42,263 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TARGET_URL: ${{ inputs.target_url }}
+        IMAGE_PREFIX: ${{ inputs.image_prefix }} # <-- ADDED THIS
       run: |
         xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" node thumbnail_bot.js
+
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# // ======================= 200% yeh codee full teek hai , bas opper waley mei yeh images jo save hoty hai realese mei iska name dynamic karney k liye input create karta hu ====================================
+
+
+
+
+# name: Auto Thumbnail Generator
+
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       target_url:
+#         description: 'Target Website URL'
+#         required: true
+#         default: 'https://dlstreams.com/watch.php?id=598'
+
+# permissions:
+#   contents: write 
+
+# jobs:
+#   run-thumbnail-bot:
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 360
+
+#     steps:
+#     - name: Checkout Code
+#       uses: actions/checkout@v3
+
+#     - name: Install System Tools (Chrome & Xvfb)
+#       run: |
+#         sudo apt-get update
+#         sudo apt-get install -y google-chrome-stable xvfb
+
+#     - name: Setup Node.js
+#       uses: actions/setup-node@v3
+#       with:
+#         node-version: '18'
+
+#     - name: Install Node Libraries
+#       run: npm install puppeteer puppeteer-extra puppeteer-extra-plugin-stealth
+
+#     - name: 🚀 Run Infinite Thumbnail Loop
+#       env:
+#         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#         TARGET_URL: ${{ inputs.target_url }}
+#       run: |
+#         xvfb-run --auto-servernum --server-args="-screen 0 1280x720x24" node thumbnail_bot.js
 
 
 
